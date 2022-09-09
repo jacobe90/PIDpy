@@ -8,6 +8,7 @@ import pygame, sys, math
 COLOR = (0, 0, 0)
 SURFACE_COLOR = (0, 0, 0)
 
+
 class Cart(pygame.sprite.Sprite):
     def __init__(self, color, width, height, mass):
         super().__init__()
@@ -39,7 +40,6 @@ class Cart(pygame.sprite.Sprite):
                 angle = math.pi - angle
         self.force = (angle, z)
 
-
     def calcnewpos(self, rect, force):
         (angle,z) = force
         (Fx, Fy) = (z*math.cos(angle),z*math.sin(angle))
@@ -54,6 +54,7 @@ class Cart(pygame.sprite.Sprite):
     def apply_force(self, force):
         self.force = force
 
+
 def main():
     pygame.init()
     size = width, height = 600, 450
@@ -66,6 +67,10 @@ def main():
     cart = Cart(red, 40, 40, 20)
     cart.rect.x = 200
     cart.rect.y = 410
+    rect_desired = 300
+    kp = 0.1
+    kd = 2
+    error_old = rect_desired - cart.rect.x
     all_sprites_list.add(cart)
     ball = pygame.image.load("ball.jpeg")
     ball = pygame.transform.scale(ball, (20, 20))
@@ -76,7 +81,10 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit = False
-
+        error = rect_desired - cart.rect.x
+        derror = error - error_old
+        cart.apply_force((0, int(kp * error) + int(kd * derror)))
+        error_old = error
         all_sprites_list.update()
         screen.fill(SURFACE_COLOR)
         all_sprites_list.draw(screen)

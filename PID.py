@@ -3,6 +3,8 @@
 # Convert to meters and seconds instead of pixels and frames
 # Add an actual pid controller to move the cart to a certain position!
 
+# IDEAS
+# Add in a triangle such that when you drag it, the square will move to that position
 import pygame, sys, math
 
 COLOR = (0, 0, 0)
@@ -42,7 +44,7 @@ class Cart(pygame.sprite.Sprite):
 
     def calcnewpos(self, rect, force):
         (angle,z) = force
-        (Fx, Fy) = (z*math.cos(angle),z*math.sin(angle))
+        (Fx, Fy) = (z*math.cos(angle), z*math.sin(angle))
         (ax, ay) = (Fx / self.mass, Fy / self.mass)
 
         # update velocities
@@ -55,6 +57,10 @@ class Cart(pygame.sprite.Sprite):
         self.force = force
 
 
+def bob_acceleration(theta, ax, L, g=10):
+    return (g *math.sin(theta) + -ax * math.cos(theta)) / L
+
+
 def main():
     pygame.init()
     size = width, height = 600, 450
@@ -64,7 +70,10 @@ def main():
     red = (255, 0, 0)
     screen = pygame.display.set_mode(size)
     all_sprites_list = pygame.sprite.Group()
-    cart = Cart(red, 40, 40, 20)
+
+    # cart params
+    mcart = 20
+    cart = Cart(red, 40, 40, mcart)
     cart.rect.x = 200
     cart.rect.y = 410
     rect_desired = 300
@@ -77,20 +86,51 @@ def main():
     ballrect = ball.get_rect()
     clock = pygame.time.Clock()
     exit = True
+
+    # Pendulum stuff
+    L = 100
+    theta = 0
+    bob_r = 10
+    bx = 200
+    by = 360
+    vbob = 0
+    vbob_old = 0
+    abob_old = 0
+    theta = math.acos((by - cart.rect.y) / L)
+    print("theta: %d", theta)
     while exit:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit = False
         error = rect_desired - cart.rect.x
         derror = error - error_old
-        cart.apply_force((0, int(kp * error) + int(kd * derror)))
+        (angle, z) = (0, int(kp * error) + int(kd * derror))
+        #cart.force = (0, 0)
+        cart.apply_force((angle, z))
         error_old = error
         all_sprites_list.update()
         screen.fill(SURFACE_COLOR)
         all_sprites_list.draw(screen)
-        # print("finished drawing sprites")
+
+        # calculate the new position of the bob
+        (Fx, Fy) = (z * math.cos(angle), z * math.sin(angle))
+        ax = Fx / mcart
+        print("ax: %f", ax)
+        abob = bob_acceleration(theta, ax, L)
+        print("abob: %f", abob)
+        vbob = abob - abob_old
+        abob_old = abob
+        #theta = vbob - vbob_old
+        theta += 0.1
+        vbob_old = vbob
+        print("theta: %f", theta)
+        bx = cart.rect.x + L * math.sin(theta)
+        by = cart.rect.y - L * math.cos(theta)
+        pygame.draw.circle(screen, red, (bx, by), bob_r)
+
+        # draw the pendulum bob
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(10000)
     pygame.quit()
 
 
